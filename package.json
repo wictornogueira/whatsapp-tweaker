@@ -1,0 +1,19 @@
+{
+  "name": "whatsapp-tweaker",
+  "version": "1.0.0",
+  "main": "./dist/main.js",
+  "module": "./dist/esm/main.js",
+  "license": "MIT",
+  "scripts": {
+    "build:cjs": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig-esm.json",
+    "build": "npm run build:cjs && npm run build:esm",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "asar": "^3.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^4.2.3"
+  }
+}
