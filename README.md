@@ -12,6 +12,19 @@ Note: only works on Windows and WSL2.
 
 ## Usage
 
+1. Find the latest available version
+
+```js
+  const { WhatsAppTweaker } = require('whatsapp-tweaker')
+  
+  const tweaker = new WhatsAppTweaker()
+
+  tweaker.useDefaultBaseDir()
+  console.log(tweaker.versions)
+```
+
+2. Set the latest version and patch your client
+
 ```js
   const path = require('path')
   const { WhatsAppTweaker } = require('whatsapp-tweaker')
@@ -19,7 +32,7 @@ Note: only works on Windows and WSL2.
   const tweaker = new WhatsAppTweaker()
 
   tweaker.useDefaultBaseDir()
-  tweaker.setVersion('app-2.2106.10')
+  tweaker.setVersion('app-2.2108.8')
 
   tweaker.enableNodeIntegration()
   tweaker.enableDevTools()
