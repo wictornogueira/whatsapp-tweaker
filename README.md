@@ -1,4 +1,4 @@
-# Wappermelon
+# WhatsApp Tweaker
 
 ### A module that allows you to programmatically tweak your WhatsApp desktop client.
 
