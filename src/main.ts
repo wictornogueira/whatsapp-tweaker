@@ -7,6 +7,16 @@ if (process.platform !== 'win32' && !os.release().includes('WSL')) {
   throw new Error('Platform not supported.')
 }
 
+export interface InjectOptions {
+  injectAsScript?: boolean
+  injectAsStyleSheet?: boolean
+}
+
+export interface InjectedFile {
+  filePath: string
+  options: InjectOptions
+}
+
 export class WhatsAppTweaker {
   static defaultDir: string = path.join(process.platform === 'win32' ? '~' : `/mnt/c/Users/${os.userInfo().username}`, 'AppData/Local/WhatsApp')
 
@@ -15,8 +25,7 @@ export class WhatsAppTweaker {
 
   nodeIntegration: boolean = false
   devTools: boolean = false
-  cssFiles: string[] = []
-  jsFiles: string[] = []
+  files: InjectedFile[] = []
 
   get resourcesDir (): string {
     return (this.baseDir && this.version) ? path.join(this.baseDir, this.version, 'resources') : ''
@@ -39,23 +48,21 @@ export class WhatsAppTweaker {
   }
 
   injectCSS (filePath: string): void {
-    filePath = path.resolve(filePath)
-
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`File ${filePath} not found.`)
-    }
-
-    this.cssFiles.push(filePath)
+    this.injectFile(filePath, { injectAsStyleSheet: true })
   }
 
   injectJS (filePath: string): void {
+    this.injectFile(filePath, { injectAsScript: true })
+  }
+
+  injectFile (filePath: string, options: InjectOptions = { injectAsScript: false, injectAsStyleSheet: false }): void {
     filePath = path.resolve(filePath)
 
     if (!fs.existsSync(filePath)) {
       throw new Error(`File ${filePath} not found.`)
     }
 
-    this.jsFiles.push(filePath)
+    this.files.push({ filePath, options })
   }
 
   setBaseDir (dir: string): void {
@@ -71,11 +78,23 @@ export class WhatsAppTweaker {
   }
 
   setVersion (version: string): void {
+    if (!version.startsWith('app-')) {
+      version = 'app-' + version
+    }
+
     if (!this.versions.includes(version)) {
       throw new Error(`Version ${version} not found.`)
     }
 
     this.version = version
+  }
+
+  selectVersion (version: string): void {
+    return this.setVersion(version)
+  }
+
+  useVersion (version: string): void {
+    return this.setVersion(version)
   }
 
   backup (): void {
@@ -108,25 +127,30 @@ export class WhatsAppTweaker {
   }
 
   __inject (): void {
-    if (![...this.jsFiles, ...this.cssFiles].length) { return }
+    if (!this.files.length) { return }
 
     fs.mkdirSync(path.join(this.resourcesDir, 'temp', 'injected', 'css'), { recursive: true })
     fs.mkdirSync(path.join(this.resourcesDir, 'temp', 'injected', 'js'), { recursive: true })
+    fs.mkdirSync(path.join(this.resourcesDir, 'temp', 'injected', 'other'), { recursive: true })
 
     let indexHTML = fs.readFileSync(path.join(this.resourcesDir, 'temp', 'index.html'), { encoding: 'utf-8' })
 
-    for (const sheet of this.cssFiles) {
-      const basename = path.basename(sheet)
+    for (const { filePath, options } of this.files) {
+      const basename = path.basename(filePath)
 
-      fs.copyFileSync(sheet, path.join(this.resourcesDir, 'temp', 'injected', 'css', basename))
-      indexHTML = indexHTML.replace('</head>', `<link rel="stylesheet" href="injected/css/${basename}">\n</head>`)
-    }
-
-    for (const script of this.jsFiles) {
-      const basename = path.basename(script)
-
-      fs.copyFileSync(script, path.join(this.resourcesDir, 'temp', 'injected', 'js', basename))
-      indexHTML = indexHTML.replace('</head>', `<script src="injected/js/${basename}" defer></script>\n</head>`)
+      switch (true) {
+        case options.injectAsStyleSheet:
+          fs.copyFileSync(filePath, path.join(this.resourcesDir, 'temp', 'injected', 'css', basename))
+          indexHTML = indexHTML.replace('</head>', `<link rel="stylesheet" href="injected/css/${basename}">\n</head>`)
+          break
+        case options.injectAsScript:
+          fs.copyFileSync(filePath, path.join(this.resourcesDir, 'temp', 'injected', 'js', basename))
+          indexHTML = indexHTML.replace('</head>', `<script src="injected/js/${basename}" defer></script>\n</head>`)
+          break
+        default:
+          fs.copyFileSync(filePath, path.join(this.resourcesDir, 'temp', 'injected', 'other', basename))
+          break
+      }
     }
 
     fs.writeFileSync(path.join(this.resourcesDir, 'temp', 'index.html'), indexHTML)
